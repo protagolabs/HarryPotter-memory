@@ -81,7 +81,7 @@ if __name__ == "__main__":
                 for line in infile:
                     chapter_data = json.loads(line.strip())  # Load the chapter (JSON object)
 
-                    chapter_id = list(chapter_data.keys())[0]  # Get the chapter ID (assuming it's a key)
+                    chapter_id = list(chapter_data.keys())[0]  
 
                     # Skip chapters that have already been processed
                     if chapter_id in processed_chapters:
