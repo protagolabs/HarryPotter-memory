@@ -1,4 +1,4 @@
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, helpers
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -192,13 +192,45 @@ if __name__ == "__main__":
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
     client = OpenAI(api_key=OPENAI_API_KEY)
 
-    # 创建索引
+    # 创建索引,先读取已有的数据
     social_memory_index = "social_memory"
     knowledge_memory_index = "knowledge_memory"
     interaction_memory_index = "interaction_memory"
     create_social_memory_index(social_memory_index)
     create_knowledge_memory_index(knowledge_memory_index)
     create_interaction_memory_index(interaction_memory_index)
+
+    # Helper function to load JSONL and return list of documents
+    def load_jsonl(filepath):
+        documents = []
+        with open(filepath, 'r') as file:
+            for line in file:
+                documents.append(json.loads(line.strip()))
+        return documents
+
+    # Load data from JSONL files
+    social_memory_docs = load_jsonl('social_memory.jsonl')
+    knowledge_memory_docs = load_jsonl('knowledge_memory.jsonl')
+    interaction_memory_docs = load_jsonl('interaction_memory.jsonl')
+
+    # Function to bulk insert into Elasticsearch
+    def bulk_insert(index_name, docs):
+        actions = [
+            {
+                "_index": index_name,
+                "_source": doc
+            }
+            for doc in docs
+        ]
+        helpers.bulk(es, actions)
+
+    # Insert the data into Elasticsearch
+    bulk_insert(social_memory_index, social_memory_docs)
+    bulk_insert(knowledge_memory_index, knowledge_memory_docs)
+    bulk_insert(interaction_memory_index, interaction_memory_docs)
+
+    print("Data has been successfully inserted into Elasticsearch.")
+
 
     # Process each line (each chapter) in the JSONL file
     count = 0
@@ -275,9 +307,9 @@ if __name__ == "__main__":
         doc3 = sorted(doc3, key=lambda x: int(re.findall(r'\d+', x['event_id'])[0]))
 
     # Save the data to JSONL files
-    #save_to_jsonl(doc1, 'social_memory_complete.jsonl')
-    #save_to_jsonl(doc2, 'knowledge_memory_complete.jsonl')
-    #save_to_jsonl(doc3, 'interaction_memory_complete.jsonl')
+    save_to_jsonl(doc1, 'social_memory_complete.jsonl')
+    save_to_jsonl(doc2, 'knowledge_memory_complete.jsonl')
+    save_to_jsonl(doc3, 'interaction_memory_complete.jsonl')
 
 
 
